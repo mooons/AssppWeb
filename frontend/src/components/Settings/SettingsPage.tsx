@@ -49,7 +49,7 @@ export default function SettingsPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importPassword, setImportPassword] = useState("");
   const [importFileData, setImportFileData] = useState("");
-  const [importPlainJson, setImportPlainJson] = useState(false);
+  const [importFileName, setImportFileName] = useState("");
 
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [pendingAccounts, setPendingAccounts] = useState<Account[]>([]);
@@ -80,16 +80,23 @@ export default function SettingsPage() {
     }
     try {
       let content: string;
+      let extension: "enc" | "json";
       if (!exportPassword) {
         content = JSON.stringify(accounts, null, 2);
+        extension = "json";
       } else {
         content = await encryptData(accounts, exportPassword);
+        extension = "enc";
       }
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/\.\d{3}Z$/, "Z")
+        .replace(/[:]/g, "-");
       const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "asspp-accounts.enc";
+      a.download = `asspp-accounts-${timestamp}.${extension}`;
       a.click();
       URL.revokeObjectURL(url);
 
@@ -110,6 +117,7 @@ export default function SettingsPage() {
     reader.onload = (event) => {
       const content = event.target?.result as string;
       setImportFileData(content);
+      setImportFileName(file.name);
       setImportModalOpen(true);
     };
     reader.readAsText(file);
@@ -117,18 +125,21 @@ export default function SettingsPage() {
   };
 
   const handleImport = async () => {
+    let plainJson = importFileName.toLowerCase().endsWith(".json");
     try {
       let parsed: any;
-      if (importPassword) {
+      if (plainJson) {
+        parsed = JSON.parse(importFileData);
+      } else if (importPassword) {
         try {
           parsed = await decryptData(importFileData, importPassword);
         } catch {
           parsed = JSON.parse(importFileData);
-          setImportPlainJson(true);
+          plainJson = true;
         }
       } else {
         parsed = JSON.parse(importFileData);
-        setImportPlainJson(true);
+        plainJson = true;
       }
       if (!Array.isArray(parsed)) throw new Error("Invalid format");
       const valid = parsed.filter(
@@ -147,7 +158,7 @@ export default function SettingsPage() {
         addToast(t("settings.data.importSuccess"), "success");
         setImportModalOpen(false);
         setImportPassword("");
-        setImportPlainJson(false);
+        setImportFileName("");
       } else {
         let conflictCount = 0;
         let newCount = 0;
@@ -161,7 +172,7 @@ export default function SettingsPage() {
           setPendingAccounts(valid);
           setImportModalOpen(false);
           setImportPassword("");
-          setImportPlainJson(false);
+          setImportFileName("");
           setConflictModalOpen(true);
         } else {
           for (const acc of valid) {
@@ -170,11 +181,11 @@ export default function SettingsPage() {
           addToast(t("settings.data.importSuccess"), "success");
           setImportModalOpen(false);
           setImportPassword("");
-          setImportPlainJson(false);
+          setImportFileName("");
         }
       }
     } catch {
-      if (importPlainJson) {
+      if (plainJson) {
         addToast(t("settings.data.invalidFormat"), "error");
       } else {
         addToast(t("settings.data.incorrectPassword"), "error");
@@ -419,7 +430,7 @@ export default function SettingsPage() {
               type="file"
               ref={fileInputRef}
               className="hidden"
-              accept=".enc"
+              accept=".enc,.json,application/json"
               onChange={handleFileSelect}
             />
           </div>
@@ -515,7 +526,6 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={handleExport}
-            disabled={!exportPassword && !exportConfirmPassword}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {t("settings.data.confirmBtn")}
@@ -529,17 +539,19 @@ export default function SettingsPage() {
         title={t("settings.data.importBtn")}
       >
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t("settings.data.passwordPrompt")}
-            </label>
-            <input
-              type="password"
-              value={importPassword}
-              onChange={(e) => setImportPassword(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-base text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            />
-          </div>
+          {!importFileName.toLowerCase().endsWith(".json") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {t("settings.data.passwordPrompt")}
+              </label>
+              <input
+                type="password"
+                value={importPassword}
+                onChange={(e) => setImportPassword(e.target.value)}
+                className="block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-base text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              />
+            </div>
+          )}
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <button
