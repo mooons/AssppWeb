@@ -247,6 +247,7 @@
       "passwordConfirm": "Confirm Password",
       "passwordMismatch": "Passwords do not match.",
       "incorrectPassword": "Incorrect password or corrupted data.",
+      "invalidFormat": "Invalid file format. The backup may be corrupted.",
       "exportSuccess": "Accounts exported successfully.",
       "importSuccess": "Accounts imported successfully.",
       "cancel": "Cancel",

@@ -247,6 +247,7 @@
       "passwordConfirm": "確認密碼",
       "passwordMismatch": "兩次輸入的密碼不一致。",
       "incorrectPassword": "密碼錯誤或資料已損壞。",
+      "invalidFormat": "格式無效，備份可能已損壞。",
       "exportSuccess": "帳號匯出成功。",
       "importSuccess": "帳號匯入成功。",
       "cancel": "取消",

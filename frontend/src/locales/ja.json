@@ -247,6 +247,7 @@
       "passwordConfirm": "パスワードを確認",
       "passwordMismatch": "パスワードが一致しません。",
       "incorrectPassword": "パスワードが間違っているか、データが破損しています。",
+      "invalidFormat": "無効なファイル形式です。バックアップが破損している可能性があります。",
       "exportSuccess": "アカウントのエクスポートに成功しました。",
       "importSuccess": "アカウントのインポートに成功しました。",
       "cancel": "キャンセル",

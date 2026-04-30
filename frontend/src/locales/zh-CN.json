@@ -247,6 +247,7 @@
       "passwordConfirm": "确认密码",
       "passwordMismatch": "两次输入的密码不一致。",
       "incorrectPassword": "密码错误或数据已损坏。",
+      "invalidFormat": "文件格式无效，备份可能已损坏。",
       "exportSuccess": "账号导出成功。",
       "importSuccess": "账号导入成功。",
       "cancel": "取消",

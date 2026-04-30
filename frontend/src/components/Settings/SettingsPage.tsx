@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importPassword, setImportPassword] = useState("");
   const [importFileData, setImportFileData] = useState("");
+  const [importPlainJson, setImportPlainJson] = useState(false);
 
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [pendingAccounts, setPendingAccounts] = useState<Account[]>([]);
@@ -78,8 +79,13 @@ export default function SettingsPage() {
       return;
     }
     try {
-      const encrypted = await encryptData(accounts, exportPassword);
-      const blob = new Blob([encrypted], { type: "text/plain" });
+      let content: string;
+      if (!exportPassword) {
+        content = JSON.stringify(accounts, null, 2);
+      } else {
+        content = await encryptData(accounts, exportPassword);
+      }
+      const blob = new Blob([content], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -112,7 +118,18 @@ export default function SettingsPage() {
 
   const handleImport = async () => {
     try {
-      const parsed = await decryptData(importFileData, importPassword);
+      let parsed: any;
+      if (importPassword) {
+        try {
+          parsed = await decryptData(importFileData, importPassword);
+        } catch {
+          parsed = JSON.parse(importFileData);
+          setImportPlainJson(true);
+        }
+      } else {
+        parsed = JSON.parse(importFileData);
+        setImportPlainJson(true);
+      }
       if (!Array.isArray(parsed)) throw new Error("Invalid format");
       const valid = parsed.filter(
         (item: any) =>
@@ -130,6 +147,7 @@ export default function SettingsPage() {
         addToast(t("settings.data.importSuccess"), "success");
         setImportModalOpen(false);
         setImportPassword("");
+        setImportPlainJson(false);
       } else {
         let conflictCount = 0;
         let newCount = 0;
@@ -143,6 +161,7 @@ export default function SettingsPage() {
           setPendingAccounts(valid);
           setImportModalOpen(false);
           setImportPassword("");
+          setImportPlainJson(false);
           setConflictModalOpen(true);
         } else {
           for (const acc of valid) {
@@ -151,10 +170,15 @@ export default function SettingsPage() {
           addToast(t("settings.data.importSuccess"), "success");
           setImportModalOpen(false);
           setImportPassword("");
+          setImportPlainJson(false);
         }
       }
     } catch {
-      addToast(t("settings.data.incorrectPassword"), "error");
+      if (importPlainJson) {
+        addToast(t("settings.data.invalidFormat"), "error");
+      } else {
+        addToast(t("settings.data.incorrectPassword"), "error");
+      }
     }
   };
 
@@ -169,6 +193,7 @@ export default function SettingsPage() {
     }
     setConflictModalOpen(false);
     setPendingAccounts([]);
+    setImportPlainJson(false);
     addToast(t("settings.data.importSuccess"), "success");
   };
 
@@ -467,17 +492,19 @@ export default function SettingsPage() {
               className="block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-base text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t("settings.data.passwordConfirm")}
-            </label>
-            <input
-              type="password"
-              value={exportConfirmPassword}
-              onChange={(e) => setExportConfirmPassword(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-base text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-            />
-          </div>
+          {exportPassword && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {t("settings.data.passwordConfirm")}
+              </label>
+              <input
+                type="password"
+                value={exportConfirmPassword}
+                onChange={(e) => setExportConfirmPassword(e.target.value)}
+                className="block w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-base text-gray-900 dark:text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+              />
+            </div>
+          )}
         </div>
         <div className="mt-6 flex justify-end gap-3">
           <button
@@ -488,7 +515,7 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={handleExport}
-            disabled={!exportPassword || !exportConfirmPassword}
+            disabled={!exportPassword && !exportConfirmPassword}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {t("settings.data.confirmBtn")}
@@ -523,7 +550,6 @@ export default function SettingsPage() {
           </button>
           <button
             onClick={handleImport}
-            disabled={!importPassword}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
             {t("settings.data.confirmBtn")}
